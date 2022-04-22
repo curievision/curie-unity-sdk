@@ -415,18 +415,7 @@ namespace CurieSDK
                 (a) => {
 
                 });
-
 #endif
-
-                Importer.ImportGLBAsync(resultBytes, new ImportSettings(),
-                    (a, anims) =>
-                    {
-                        waiting = false;
-                        gameObj = a;
-                    },
-                (a) => {
-
-                });
             }
             else
             {
