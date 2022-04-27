@@ -8,13 +8,4 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/CurieCatalogDemo/CurieCatalogDemo.unity
     guid: 743b5fa57b132844d8193ecf26d5c683
-  - enabled: 1
-    path: Assets/CurieSDK/Examples/1 - Load First Model Realtime.unity
-    guid: 2088f797ac29d1c4584cbdcee58b54c4
-  - enabled: 1
-    path: Assets/CurieSDK/Examples/2 - Cache Models.unity
-    guid: 8837b57f9de697a4e95dd8c4bbab036b
-  - enabled: 1
-    path: Assets/CurieSDK/Examples/3 - Load Image With Metadata.unity
-    guid: abd9c15bf940ae146a9e34e0ba0aa2da
   m_configObjects: {}
