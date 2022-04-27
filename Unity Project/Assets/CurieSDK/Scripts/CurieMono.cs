@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace CurieSDK
 {
+    /// <summary>
+    /// Empty MonoBehaviour responsible for handling Curie SDK Couroutines.
+    /// </summary>
     public class CurieMono : MonoBehaviour
     {
 

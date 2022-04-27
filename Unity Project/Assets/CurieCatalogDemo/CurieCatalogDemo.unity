@@ -208,8 +208,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4279111182
-  m_fontColor: {r: 0.05660379, g: 0.05660379, b: 0.05660379, a: 1}
+    rgba: 4293519849
+  m_fontColor: {r: 0.9150943, g: 0.9150943, b: 0.9150943, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -231,7 +231,7 @@ MonoBehaviour:
   m_fontWeight: 400
   m_enableAutoSizing: 1
   m_fontSizeMin: 24
-  m_fontSizeMax: 34
+  m_fontSizeMax: 40
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
@@ -2137,7 +2137,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97b726fa4f6426b43a24c0be59bc7f04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rotationPerSec: {x: 0, y: 0, z: 180}
+  rotationPerSec: {x: 0, y: 0, z: -180}
   Rotate: 1
 --- !u!1 &306784541
 GameObject:
@@ -6166,8 +6166,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 537629316}
   m_HandleRect: {fileID: 537629315}
   m_Direction: 2
-  m_Value: 1.0000013
-  m_Size: 0.81400365
+  m_Value: 1.0000005
+  m_Size: 0.8140035
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:

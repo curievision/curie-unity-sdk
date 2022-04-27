@@ -34,19 +34,21 @@ public class MobileMaxCamera : MonoBehaviour
     private Vector3 delta;
     private Vector3 lastOffset;
     private Vector3 lastOffsettemp;
-    //private Vector3 CameraPosition;
-    //private Vector3 Targetposition;
-    //private Vector3 MoveDistance;
-
     public RotateObject Rotator;
     private float timeSinceLastClick = 0;
 
-    void Start() { Init(); }
-    void OnEnable() { Init(); }
+    void Start() 
+    { 
+        Init(); 
+    }
+
+    void OnEnable() 
+    { 
+        Init(); 
+    }
 
     public void Init()
     {
-        //If there is no target, create a temporary target at 'distance' from the cameras current viewpoint
         if (!target)
         {
             GameObject go = new GameObject("Cam Target");
@@ -58,7 +60,6 @@ public class MobileMaxCamera : MonoBehaviour
         currentDistance = distance;
         desiredDistance = distance;
 
-        //be sure to grab the current rotations as starting points.
         position = transform.position;
         rotation = transform.rotation;
         currentRotation = transform.rotation;
@@ -82,13 +83,9 @@ public class MobileMaxCamera : MonoBehaviour
             }
         }
         var overUI = EventSystem.current.IsPointerOverGameObject() || touched;
-        //Debug.Log("Mouse over UI:" + overUI);
         return overUI;
     }
-
-    /*
-      * Camera logic on LateUpdate to only update after all character movement logic has been handled.
-      */
+    
     void LateUpdate()
     {
         timeSinceLastClick += Time.deltaTime;
@@ -98,32 +95,22 @@ public class MobileMaxCamera : MonoBehaviour
         }
         Rotator.Rotate = timeSinceLastClick > 8.0f;
 
-        // If Control and Alt and Middle button? ZOOM!
         if (Input.touchCount == 2)
         {
             Touch touchZero = Input.GetTouch(0);
-
             Touch touchOne = Input.GetTouch(1);
 
-
-
             Vector2 touchZeroPreviousPosition = touchZero.position - touchZero.deltaPosition;
-
             Vector2 touchOnePreviousPosition = touchOne.position - touchOne.deltaPosition;
 
-
-
             float prevTouchDeltaMag = (touchZeroPreviousPosition - touchOnePreviousPosition).magnitude;
-
             float TouchDeltaMag = (touchZero.position - touchOne.position).magnitude;
-
-
 
             float deltaMagDiff = prevTouchDeltaMag - TouchDeltaMag;
 
             desiredDistance += deltaMagDiff * Time.deltaTime * zoomRate * 0.0025f * Mathf.Abs(desiredDistance);
         }
-        // If middle mouse and left alt are selected? ORBIT
+
         if (Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Moved)
         {
             Vector2 touchposition = Input.GetTouch(0).deltaPosition;
@@ -137,7 +124,6 @@ public class MobileMaxCamera : MonoBehaviour
         currentRotation = transform.rotation;
         rotation = Quaternion.Lerp(currentRotation, desiredRotation, Time.deltaTime * zoomDampening);
         transform.rotation = rotation;
-
 
         if (Input.GetMouseButtonDown(1))
         {
@@ -153,22 +139,14 @@ public class MobileMaxCamera : MonoBehaviour
 
         }
 
-        ////////Orbit Position
-
-        // affect the desired Zoom distance if we roll the scrollwheel
         desiredDistance = Mathf.Clamp(desiredDistance, minDistance, maxDistance);
         currentDistance = Mathf.Lerp(currentDistance, desiredDistance, Time.deltaTime * zoomDampening);
 
         position = target.position - (rotation * Vector3.forward * currentDistance);
-
         position = position - targetOffset;
-
         transform.position = position;
-
-
-
-
     }
+
     private static float ClampAngle(float angle, float min, float max)
     {
         if (angle < -360)

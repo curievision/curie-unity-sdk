@@ -3,7 +3,6 @@ using UnityEngine.UI;
 
 public class UIHintToggler : MonoBehaviour
 {
-
     public Image Image;
     public Sprite MobileImage;
     public Sprite DesktopImage;

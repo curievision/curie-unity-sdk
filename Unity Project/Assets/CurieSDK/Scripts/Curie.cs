@@ -1,13 +1,10 @@
-﻿using CurieSDK;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Siccity.GLTFUtility;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -16,34 +13,52 @@ namespace CurieSDK
     public class Curie
     {
 
-        ////////////////////////////////////////////// PUBLIC FIELDS/PROPERTIES
+        #region Public Fields / Properties
 
+        /// <summary>
+        /// Singleton instance of Curie Api
+        /// </summary>
         public static Curie Instance = new Curie();
+
+        /// <summary>
+        /// Runtime modifiable settings for Curie SDK
+        /// </summary>
         public static CurieSettings Settings = new CurieSettings();
 
+        /// <summary>
+        /// Called when Curie API has initialised
+        /// </summary>
         public static event EventHandler OnInitialized
         {
             add => Instance._onInitialized += value;
             remove => Instance._onInitialized -= value;
         }
 
+        /// <summary>
+        /// Returns true if the API is ready to be used
+        /// </summary>
         public bool Initialised { get; private set; }
 
-
-
+        /// <summary>
+        /// Last endpoint called for development purposes
+        /// </summary>
         public string LastDevCall
         {
             get { return _lastDevCall; }
         }
+
+        /// <summary>
+        /// Last JSON response output for development purposes
+        /// </summary>
         public string LastDevOutput
         {
             get { return _lastDevOutput; }
         }
+        #endregion
 
-        ////////////////////////////////////////////// PRIVATE FIELDS/PROPERTIES
+        #region Private Fields / Properties
 
         private string _pubKey;
-        private string _bearerToken;
         private event EventHandler _onInitialized;
 
         private CurieMono _handler;
@@ -54,68 +69,120 @@ namespace CurieSDK
         private Dictionary<string, Product> _cachedProductData = new Dictionary<string, Product>();
         private Dictionary<string, ModelResultHolder> _cachedProductFileData = new Dictionary<string, ModelResultHolder>();
 
-        ////////////////////////////////////////////// PUBLIC METHODS
-        public static Curie Init(string publicKey, string apiKey)
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Initialises the Curie SDK
+        /// </summary>
+        /// <param name="publicKey">Public key found in Curie Studio</param>
+        /// <returns></returns>
+        public static Curie Init(string publicKey)
         {
-            return Init(publicKey, apiKey, null);   
+            return Init(publicKey, null);   
         }
-        public static Curie Init(string publicKey, string apiKey, CurieSettings settings)
+
+        /// <summary>
+        /// Initialises the Curie SDK with the specified settings
+        /// </summary>
+        /// <param name="publicKey">Public key found in Curie Studio</param>
+        /// <returns></returns>
+        public static Curie Init(string publicKey, CurieSettings settings)
         {
             if(settings == null) settings = new CurieSettings();
 
             Instance._pubKey = publicKey;
             Settings = settings;
 
-
 #if UNITY_WEBGL
             Settings.CacheModels = false;
 #endif
 
-
             var handler = Instance.GetRoutineHandler();
-            handler.StartCoroutine(Instance.API_GetAndCacheBearerToken(publicKey, apiKey));
+            handler.StartCoroutine(Instance.API_Initialise());
             return Instance;
         }
 
-        public CurieAPICall<List<Product>> SearchProducts(string searchQuery, Action<List<Product>> OnComplete = null)
+        /// <summary>
+        /// Search for products in your organization with optional query filter
+        /// </summary>
+        /// <param name="searchQuery">Optional search string to filter items by</param>
+        /// <param name="OnComplete">Callback method when the api call completes</param>
+        /// <returns></returns>
+        public CurieAPICall<List<Product>> SearchProducts(string searchQuery = "", Action<List<Product>> OnComplete = null)
         {
-            var apiCall = new CurieAPICall<List<Product>>(_handler, API_SearchProducts(searchQuery), OnComplete);
+            var apiCall = new CurieAPICall<List<Product>>(_handler, API_SearchProducts(searchQuery, -1, -1), OnComplete);
             return apiCall;
         }
 
+        /// <summary>
+        /// Search for products in your organization with query filter, skip and limit
+        /// </summary>
+        /// <param name="searchQuery">Search string to filter items by</param>
+        /// <param name="skip">Number of results to skip</param>
+        /// <param name="limit">Max number of products returned</param>
+        /// <param name="OnComplete">Callback method when the api call completes</param>
+        /// <returns></returns>
+        public CurieAPICall<List<Product>> SearchProducts(string searchQuery, int skip, int limit, Action<List<Product>> OnComplete = null)
+        {
+            var apiCall = new CurieAPICall<List<Product>>(_handler, API_SearchProducts(searchQuery, skip, limit), OnComplete);
+            return apiCall;
+        }
+
+        /// <summary>
+        /// Get product metadata (name, desc, brand, thumbnail url). Will used cached metadata if available
+        /// </summary>
+        /// <param name="modelId">Model ID</param>
+        /// <param name="OnComplete">Callback method when the api call completes</param>
+        /// <returns></returns>
         public CurieAPICall<Product> GetProductData(string modelId, Action<Product> OnComplete = null)
         {
             var apiCall = new CurieAPICall<Product>(_handler, API_GetProductData(modelId), OnComplete);
             return apiCall;
         }
 
-        public CurieAPICall<ModelResultHolder> GetProductFiles(string modelId, Action<ModelResultHolder> OnComplete = null)
-        {
-            var apiCall = new CurieAPICall<ModelResultHolder>(_handler, API_GetProductFiles(modelId), OnComplete);
-            return apiCall;
-        }
-
+        /// <summary>
+        /// Instantiates a Curie model by ID
+        /// </summary>
+        /// <param name="modelId">Model ID</param>
+        /// <param name="OnComplete">Callback method when the api call completes</param>
+        /// <returns></returns>
         public CurieAPICall<GameObject> InstantiateModel(string modelId, Action<GameObject> OnComplete = null)
         {
             var apiCall = new CurieAPICall<GameObject>(_handler, API_InstantiateModel(modelId), OnComplete);
             return apiCall;
         }
 
+        #endregion
 
-        public Product GetCachedProductData(string modelId)
+        #region Private Methods
+        /// <summary>
+        /// Get product file data
+        /// </summary>
+        /// <param name="modelId">Model ID</param>
+        /// <param name="OnComplete">Callback method when the api call completes</param>
+        /// <returns></returns>
+        private CurieAPICall<ModelResultHolder> GetProductFiles(string modelId, Action<ModelResultHolder> OnComplete = null)
+        {
+            var apiCall = new CurieAPICall<ModelResultHolder>(_handler, API_GetProductFiles(modelId), OnComplete);
+            return apiCall;
+        }
+
+        private Product GetCachedProductData(string modelId)
         {
             var productData = _cachedProductData.ContainsKey(modelId) ? _cachedProductData[modelId] : null;
             return productData;
         }
 
-        public ModelResultHolder GetCachedProductFileData(string modelId)
+        private ModelResultHolder GetCachedProductFileData(string modelId)
         {
             var productData = _cachedProductFileData.ContainsKey(modelId) ? _cachedProductFileData[modelId] : null;
             return productData;
         }
 
-
-        ///////////////////////////////////////////// PRIVATE METHODS
+        /// </summary>
+        /// <returns></returns>
         private CurieMono GetRoutineHandler()
         {
             if (_handler == null)
@@ -127,13 +194,11 @@ namespace CurieSDK
             return _handler;
         }
 
-        ///////////////////////// ENDPOINTS
-
-
         private void SetLastDevCall(string uri, string type = "GET")
         {
             _lastDevCall = string.Format("{0}: {1}", type, uri);
         }
+
         private void SetLastDevOutput(string resultJson)
         {
             var parsedJson = JsonConvert.DeserializeObject(resultJson);
@@ -142,45 +207,59 @@ namespace CurieSDK
         }
 
 
-        /// <summary>
-        /// Authenticate using public and secret key which returns a bearer key to be used in API requests
-        /// </summary>
-        private IEnumerator API_GetAndCacheBearerToken(string _publicKey, string _secretKey)
+        private string GetCachedModelFile(string modelId)
         {
-            _bearerToken = "";
-            var api_auth_url = "https://api.curie.io/auth";
+            var basePath = Path.Combine(Application.persistentDataPath, "CurieModels/");
+            Directory.CreateDirectory(basePath);
 
-            var data = new Dictionary<string, string>()
-        {
-            {"grant_type"   , "client_credentials"},
-            {"client_id"    , _publicKey },
-            {"client_secret", _secretKey},
-        };
-
-            using (UnityWebRequest webRequest = UnityWebRequest.Post(api_auth_url, data))
+            var modelPath = "";
+            string[] files = Directory.GetFiles(basePath);
+            foreach (string file in files)
             {
-                yield return webRequest.SendWebRequest();
-
-#pragma warning disable CS0618 // Type or member is obsolete
-                if (!webRequest.isHttpError)
-#pragma warning restore CS0618 // Type or member is obsolete
+                var fileName = Path.GetFileName(file);
+                if (fileName.StartsWith(modelId))
                 {
-                    var resultJson = webRequest.downloadHandler.text;
-                    var resultObj = JsonUtility.FromJson<CurieBearerToken>(resultJson);
-                    var bearer = resultObj.access_token;
-                    _bearerToken = bearer;
-                    Initialised = true;
-
-                    Debug.Log("[Curie] Successfully authenticated with Curie API");
-                    _onInitialized?.Invoke(this, null);
+                    modelPath = file;
+                    break;
                 }
             }
+
+            if (!string.IsNullOrEmpty(modelPath))
+            {
+                Console.WriteLine(Path.GetFileName(modelPath));
+                return modelPath;
+            }
+
+            return null;
+        }
+
+        private string GetSavePath(string modelId)
+        {
+            var basePath = Path.Combine(Application.persistentDataPath, "CurieModels/");
+            Directory.CreateDirectory(basePath);
+
+            var savePath = Path.Combine(basePath, modelId + ".glb");
+            return savePath;
+        }
+        #endregion
+
+        #region Endpoints
+
+        /// <summary>
+        /// Initialise Curie API
+        /// </summary>
+        private IEnumerator API_Initialise()
+        {
+            Debug.Log("[Curie] Successfully authenticated with Curie API");
+            Initialised = true;
+            _onInitialized?.Invoke(this, null);
+            yield return true;
         }
 
         /// <summary>
         /// Use the API to load a model's metadata including thumbnail (if it exists) and cache it by refId
         /// </summary>
-        public IEnumerator API_SearchProducts(string productName)
+        private IEnumerator API_SearchProducts(string productName, int skip, int limit)
         {
             if (!Initialised)
             {
@@ -188,23 +267,35 @@ namespace CurieSDK
                 yield break;
             }
 
-            var api_url = string.Format("https://api.curie.io/admin/v1/products?skip=0&limit=15&search={0}&sort=-created_on", productName);
+            if (skip == -1)
+                skip = 0;
+            if (limit == -1)
+                limit = 10;
+
+            var api_url = string.Format("https://api.curie.io/public/products?skip={0}&limit={1}&search={2}&sort=-created_on", skip, limit, productName);
             SetLastDevCall(api_url);
 
             using (UnityWebRequest webRequest = UnityWebRequest.Get(api_url))
             {
-                var token = "Bearer " + _bearerToken;
-                webRequest.SetRequestHeader("Authorization", token);
+var curieApiKey = _pubKey;
+                webRequest.SetRequestHeader("x-curie-api-key", curieApiKey);
                 webRequest.SetRequestHeader("accept", "application/json");
+
+                Debug.Log("api key: " + curieApiKey);
+
                 yield return webRequest.SendWebRequest();
 
 #pragma warning disable CS0618 // Type or member is obsolete
                 if (!webRequest.isHttpError)
 #pragma warning restore CS0618 // Type or member is obsolete
                 {
+                    Debug.Log("good result!");
                     var resultJson = webRequest.downloadHandler.text;
+
+                    Debug.Log(resultJson);
                     SetLastDevOutput(resultJson);
                     var resultObj = JsonUtility.FromJson<ProductList>(resultJson);
+                    Debug.Log("products::" + resultObj.products.Count);
                     var searchResults = resultObj.products;
 
                     // Cache product data
@@ -218,6 +309,10 @@ namespace CurieSDK
                     // Return the result
                     yield return searchResults;
                 }
+                else
+                {
+                    Debug.Log(webRequest.error);
+                }
             }
         }
 
@@ -225,7 +320,7 @@ namespace CurieSDK
         /// <summary>
         /// Use the API to load a model's metadata including thumbnail (if it exists) and cache it by refId
         /// </summary>
-        public IEnumerator API_GetProductData(string model)
+        private IEnumerator API_GetProductData(string model)
         {
             yield return null;
             if (!Initialised)
@@ -236,15 +331,17 @@ namespace CurieSDK
 
             if(_cachedProductData.ContainsKey(model))
             {
+                Debug.Log("caaaccched");
                 yield return _cachedProductData[model];
+                yield break;
             }
 
-            var api_url = string.Format("https://api.curie.io/admin/v1/products/{0}", model);
+            var api_url = string.Format("https://api.curie.io/public/products/{0}", model);
             SetLastDevCall(api_url);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(api_url))
             {
-                var token = "Bearer " + _bearerToken;
-                webRequest.SetRequestHeader("Authorization", token);
+var curieApiKey = _pubKey;
+                webRequest.SetRequestHeader("x-curie-api-key", curieApiKey);
                 webRequest.SetRequestHeader("accept", "application/json");
                 yield return webRequest.SendWebRequest();
 
@@ -268,7 +365,7 @@ namespace CurieSDK
         /// <summary>
         /// Use the API to load a model's metadata including thumbnail (if it exists) and cache it by refId
         /// </summary>
-        public IEnumerator API_GetProductFiles(string model)
+        private IEnumerator API_GetProductFiles(string model)
         {
             yield return null;
             if (!Initialised)
@@ -277,12 +374,12 @@ namespace CurieSDK
                 yield break;
             }
 
-            var api_url = string.Format("https://api.curie.io/admin/v1/products/{0}/media", model);
+            var api_url = string.Format("https://api.curie.io/public/products/{0}/media", model);
             SetLastDevCall(api_url);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(api_url))
             {
-                var token = "Bearer " + _bearerToken;
-                webRequest.SetRequestHeader("Authorization", token);
+var curieApiKey = _pubKey;
+                webRequest.SetRequestHeader("x-curie-api-key", curieApiKey);
                 webRequest.SetRequestHeader("accept", "application/json");
                 yield return webRequest.SendWebRequest();
 
@@ -306,7 +403,7 @@ namespace CurieSDK
         /// <summary>
         /// Use the API to load a model's metadata including thumbnail (if it exists) and cache it by refId
         /// </summary>
-        public IEnumerator API_AddView(string model, string mediaId)
+        private IEnumerator API_AddView(string model, string mediaId)
         {
             yield return null;
             if (!Initialised)
@@ -319,8 +416,9 @@ namespace CurieSDK
             SetLastDevCall(api_url);
             using (UnityWebRequest webRequest = UnityWebRequest.Head(api_url))
             {
+var curieApiKey = _pubKey;
+                webRequest.SetRequestHeader("x-curie-api-key", curieApiKey);
                 webRequest.SetRequestHeader("accept", "application/json");
-                webRequest.SetRequestHeader("x-curie-api-key", _pubKey);
 
                 //-H 'x-curie-api-key: amGTFYSraYIABwBNQDeT_uwSErVwHPDi'
                 yield return webRequest.SendWebRequest();
@@ -341,7 +439,7 @@ namespace CurieSDK
         /// <summary>
         /// Use the API to load a model and instantiate it into the scene by model id
         /// </summary>
-        public IEnumerator API_InstantiateModel(string modelId)
+        private IEnumerator API_InstantiateModel(string modelId)
         {
             GameObject modelFromApi = null;
 
@@ -459,7 +557,7 @@ namespace CurieSDK
             if (Settings.ResetModelsToCenter)
             {
                 gameObj.SetActive(true);
-                var modelObj = CurieModelFix.RepositionModel(gameObj);
+                var modelObj = CurieModelTools.RepositionModel(gameObj);
 
                 if (Settings.DisableObjectsOnSpawn)
                     modelObj.SetActive(false);
@@ -477,39 +575,6 @@ namespace CurieSDK
             yield return modelFromApi;
         }
 
-        private string GetCachedModelFile(string modelId)
-        {
-            var basePath = Path.Combine(Application.persistentDataPath, "CurieModels/");
-            Directory.CreateDirectory(basePath);
-
-            var modelPath = "";
-            string[] files = Directory.GetFiles(basePath);
-            foreach (string file in files)
-            {
-                var fileName = Path.GetFileName(file);  
-                if(fileName.StartsWith(modelId))
-                {
-                    modelPath = file;
-                    break;
-                }
-            }
-
-            if(!string.IsNullOrEmpty(modelPath))
-            {
-                Console.WriteLine(Path.GetFileName(modelPath));
-                return modelPath;
-            }
-
-            return null;
-        }
-
-        private string GetSavePath(string modelId)
-        {
-            var basePath = Path.Combine(Application.persistentDataPath, "CurieModels/");
-            Directory.CreateDirectory(basePath);
-
-            var savePath = Path.Combine(basePath, modelId + ".glb");
-            return savePath;
-        }
+        #endregion
     }
 }

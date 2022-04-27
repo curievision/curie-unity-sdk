@@ -21,10 +21,8 @@ namespace CurieCatalogExample
         private Vector3 lastOffset;
 
         public CurieModelViewerUI _modelViewerDemo;
-        private Camera _camera;
         public GameObject _scene;
 
-        private bool _clicked;
         public Transform target;
         public GameObject ObjectToScale;
         public float distance = 5.0f;
@@ -40,7 +38,7 @@ namespace CurieCatalogExample
         public float zoomSpeed = 1f;
         public float moveSpeed = 1f;
 
-        private Rigidbody rigidbody;
+        private Rigidbody m_rigidbody;
 
 
         public RotateObject Rotator;
@@ -50,22 +48,17 @@ namespace CurieCatalogExample
         float x = 0.0f;
         float y = 0.0f;
 
-        // Use this for initialization
         void Start()
         {
-            
-            _clicked = false;
-            _camera = GetComponent<Camera>();
             Vector3 angles = transform.eulerAngles;
             x = angles.y;
             y = angles.x;
 
-            rigidbody = GetComponent<Rigidbody>();
+            m_rigidbody = GetComponent<Rigidbody>();
 
-            // Make the rigid body not change rotation
-            if (rigidbody != null)
+            if (m_rigidbody != null)
             {
-                rigidbody.freezeRotation = true;
+                m_rigidbody.freezeRotation = true;
             }
 
             DoOrbit();
@@ -82,13 +75,6 @@ namespace CurieCatalogExample
 
             Rotator.Rotate = timeSinceLastClick > 8.0f;
 
-
-            if (target)
-            {
-                //_camera.fieldOfView += Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
-                //_camera.fieldOfView = Mathf.Clamp(_camera.fieldOfView, 3, 100);
-            }
-
             if (Input.GetKey(KeyCode.Q))
             {
                 _scene.transform.position += Vector3.up * Time.deltaTime * moveSpeed;
@@ -97,7 +83,6 @@ namespace CurieCatalogExample
             {
                 _scene.transform.position -= Vector3.up * Time.deltaTime * moveSpeed;
             }
-
 
             if (target)
             {
@@ -118,7 +103,6 @@ namespace CurieCatalogExample
                 }
             }
             var overUI = EventSystem.current.IsPointerOverGameObject() || touched;
-            //Debug.Log("Mouse over UI:" + overUI);
             return overUI;
         }
 
@@ -143,8 +127,6 @@ namespace CurieCatalogExample
             y = ClampAngle(y, yMinLimit, yMaxLimit);
 
             Quaternion rotation = Quaternion.Euler(y, x, 0);
-
-            //distance = Mathf.Clamp(distance - Input.GetAxis("Mouse ScrollWheel") * 5, distanceMin, distanceMax);
 
             var scrollDir = Input.GetAxis("Mouse ScrollWheel");
             if(scrollDir > 0.01 || scrollDir < -0.01)

@@ -12,8 +12,9 @@ namespace CurieSDK.Examples
     {
         private Curie curie;
 
-        void Start()
-        {
+        void Awake()
+        {        
+            // Add event handler for OnInitialize (must be in awake)
             Curie.OnInitialized += API_OnInitialised;
         }
 

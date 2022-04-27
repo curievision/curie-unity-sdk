@@ -91,8 +91,13 @@ namespace CurieCatalogExample
         private void Start()
         {
             API = null;
+
+            // Entry point for using Curie API
+            // In this script, it is only used to check for the last output Dev request / response
             Curie.OnInitialized += OnCurieInit;
 
+
+            // Initialise tweens and UI
             DOTween.defaultAutoPlay = AutoPlay.None;
 
             _lowerPanel.gameObject.SetActive(true);
@@ -119,6 +124,7 @@ namespace CurieCatalogExample
 
         private void OnCurieInit(object sender, EventArgs e)
         {
+            // Assign singleton instance of Curie to class API field
             API = Curie.Instance;
         }
 
@@ -129,7 +135,6 @@ namespace CurieCatalogExample
 #else
             return false;
 #endif
-
         }
 
         public void SetupTweens()
@@ -224,7 +229,6 @@ namespace CurieCatalogExample
                     ZoomTweenObjBMobile.gameObject.SetActive(true);
                     ZoomTweenObjBMobile.GetComponent<RectTransform>().anchoredPosition = CachedZoomStartPosB;
 
-
                     ZoomTweenObjCMobile.gameObject.SetActive(true);
 
                 })
@@ -258,45 +262,6 @@ namespace CurieCatalogExample
                 ZoomTween.Play();
             }
         }
-
-        public void HideTween(string tweenName)
-        {
-            return;
-
-            switch(tweenName)
-            {
-                case "Pan":
-                    PanTween.Kill(false);
-                    PanTweenActive = false;
-                    break;
-                case "Zoom":
-                    if(SystemInfo.deviceType == DeviceType.Handheld)
-                    {
-                        ZoomTweenMobile.Kill(false);
-                        ZoomTweenActiveMobile = false;
-                    }
-                    else
-                    {
-                        ZoomTween.Kill(false);
-                        ZoomTweenActive = false;
-                    }
-                    
-                    break;
-                case "Move":
-                    if (SystemInfo.deviceType == DeviceType.Handheld)
-                    {
-                        MoveTweenMobile.Kill(false);
-                        MoveTweenActiveMobile = false;
-                    }
-                    else
-                    {
-                        MoveTween.Kill(false);
-                        MoveTweenActive = false;
-                    }
-                    break;
-            }
-        }
-
         private void Update()
         {
             if (API == null) return;
@@ -304,7 +269,6 @@ namespace CurieCatalogExample
             LastDevOutput.text = "<b>Last API Request:</b> \n---\n" + API.LastDevCall + "\n---\n" +
                                 "<b>Last API Response:</b> \n---\n" + API.LastDevOutput;
         }
-
 
         public void TweenPanel()
         {
@@ -322,7 +286,6 @@ namespace CurieCatalogExample
                 })
                 .Play();
 
-
             if (_curTween2 != null)
             {
                 _curTween2.Kill(false);
@@ -333,6 +296,7 @@ namespace CurieCatalogExample
                 .DOAnchorPos(_descPanelStart.anchoredPosition, 0.75f)
                 .SetEase(Ease.InOutSine).Play();
         }
+
         public void TweenPanelOut()
         {
             _backButtonBg.gameObject.SetActive(false);
@@ -348,7 +312,6 @@ namespace CurieCatalogExample
                     _catalogPanel.SetActive(false);
                 })
                 .Play();
-
 
             if (_curTween2 != null)
             {

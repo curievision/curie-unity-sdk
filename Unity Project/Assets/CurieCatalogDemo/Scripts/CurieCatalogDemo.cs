@@ -12,10 +12,11 @@ public class CurieCatalogDemo : MonoBehaviour
 {
     private Curie _api;
     [SerializeField] private List<string> _modelIds;
+    private bool Loading = false;
+
     public Transform ModelHolder;
     [SerializeField] private GameObject _curSpawnedObj;
     [SerializeField] private CurieModelViewerUI _curUI;
-    [SerializeField] private List<CurieModelViewerUI> _UIViews;
     [SerializeField] private MouseOrbitImproved _mouseOrbiter;
     [SerializeField] private MobileMaxCamera _mobileCamera;
     [SerializeField] private float _switchFloat = 0.7f;
@@ -23,17 +24,21 @@ public class CurieCatalogDemo : MonoBehaviour
     [SerializeField] private GridLayoutGroup _catalogHolder;
     [SerializeField] private CanvasScaler _canvasScaler;
     [SerializeField] private float _modelWidth = 170;
-
-    private bool Loading = false;
-    private void Start()
+    
+    private void Awake()
     {
         //Limit FPS to 30 for demo
         QualitySettings.vSyncCount = 0;
+
+        // Add event handler for OnInitialize (must be in awake)
+        Curie.OnInitialized += OnCurieInit;
+    }
+
+    private void Start()
+    {
         Application.targetFrameRate = 30;
 
         _scene.SetActive(false);
-
-        Curie.OnInitialized += OnCurieInit;
 
 #if UNITY_ANDROID || UNITY_IPHONE
         _mobileCamera.enabled = true;
@@ -43,19 +48,14 @@ public class CurieCatalogDemo : MonoBehaviour
         _mouseOrbiter.enabled = true;
 #endif
 
-
-
-        _UIViews.ForEach(u =>
-        {
-            u._catalogPanel.SetActive(false);
-            u._catalogButton.gameObject.SetActive(false);
-            u._backButton.onClick.AddListener(ToggleCatalogPanel);
-            u._backButtonBg.onClick.AddListener(ToggleCatalogPanel);
-            u._backButtonBg.gameObject.SetActive(false);
-            u._catalogButton.onClick.AddListener(ToggleCatalogPanel);
-            u._searchButton.onClick.AddListener(() => SearchProducts(false));
-            u.ProductName.text = u.ProductDesc.text = "";
-        });
+        _curUI._catalogPanel.SetActive(false);
+        _curUI._catalogButton.gameObject.SetActive(false);
+        _curUI._backButton.onClick.AddListener(ToggleCatalogPanel);
+        _curUI._backButtonBg.onClick.AddListener(ToggleCatalogPanel);
+        _curUI._backButtonBg.gameObject.SetActive(false);
+        _curUI._catalogButton.onClick.AddListener(ToggleCatalogPanel);
+        _curUI._searchButton.onClick.AddListener(() => SearchProducts(false));
+        _curUI.ProductName.text = _curUI.ProductDesc.text = "";
     }
 
     private void OnCurieInit(object sender, EventArgs e)
@@ -67,10 +67,7 @@ public class CurieCatalogDemo : MonoBehaviour
 
     private void Update()
     {
-
         var curScale = Screen.width / _canvasScaler.referenceResolution.x;
-        //Debug.Log("Width:" + Screen.width);
-        //Debug.Log("Scale:" + curScale);
 
         _catalogHolder.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         _catalogHolder.constraintCount = Math.Max(2, (int)Math.Floor(Screen.width / _modelWidth));
@@ -81,19 +78,6 @@ public class CurieCatalogDemo : MonoBehaviour
         _canvasScaler.matchWidthOrHeight = aspectRatio == "16:9" ? 1 : 0;
 
         return;
-
-        //Debug.Log(string.Format("{0}x{1} ({2})", Screen.width, Screen.height));  
-
-        //Debug.Log(aspectRatio);
-
-
-        _curUI = aspectRatio == "16:9" ? _UIViews[0] : _UIViews[1];
-        var inactiveUI = aspectRatio == "16:9" ? _UIViews[1] : _UIViews[0];
-        inactiveUI.gameObject.SetActive(false);
-        if (!_curUI.gameObject.activeInHierarchy)
-        {
-            _curUI.gameObject.SetActive(true);
-        }
     }
 
     public string AspectRatio(int x, int y)
@@ -115,14 +99,12 @@ public class CurieCatalogDemo : MonoBehaviour
         if (Loading) yield break;
 
         Loading = true;
-        _UIViews.ForEach( u => u._loadingPanel.SetActive(true));
-        _UIViews.ForEach(u =>
+        _curUI._loadingPanel.SetActive(true);
+        
+        foreach (var b in _curUI._modelButtons)
         {
-            foreach (var b in u._modelButtons)
-            {
-                b.gameObject.SetActive(false);
-            }
-        });
+            b.gameObject.SetActive(false);
+        }
 
         var search = _curUI._searchField.text;
         var searchRoutine = _api.SearchProducts(search);
@@ -135,42 +117,31 @@ public class CurieCatalogDemo : MonoBehaviour
             StartCoroutine(LoadThumbnail(i, loadFirst));
         }
 
-        //model count = 1
-        //mod = 0
-        //i = 0 ;
-        _UIViews.ForEach(u =>
+        for (int i = 0; i < _curUI._modelButtons.Count; i++)
         {
-            for (int i = 0; i < u._modelButtons.Count; i++)
-            {
-                CurieCatalogEntry b = u._modelButtons[i];
+            CurieCatalogEntry b = _curUI._modelButtons[i];
 
-                if (i < _modelIds.Count)
-                    b.gameObject.SetActive(true);
-            }
-        });
+            if (i < _modelIds.Count)
+                b.gameObject.SetActive(true);
+        }
 
         Loading = false;
-        _UIViews.ForEach(u =>
-        {
-            u._loadingPanel.SetActive(false);
-        });
+        _curUI._loadingPanel.SetActive(false);
     }
 
     private void ToggleCatalogPanel()
     {
-        _UIViews.ForEach(u =>
+
+        var toggleIn = !_curUI._catalogPanel.activeInHierarchy;
+        if(toggleIn)
         {
-            var toggleIn = !u._catalogPanel.activeInHierarchy;
-            if(toggleIn)
-            {
-                u.TweenPanel();
-                u._catalogPanel.SetActive(!u._catalogPanel.activeInHierarchy);
-            }
-            else
-            {
-                u.TweenPanelOut();
-            }
-        });
+            _curUI.TweenPanel();
+            _curUI._catalogPanel.SetActive(!_curUI._catalogPanel.activeInHierarchy);
+        }
+        else
+        {
+            _curUI.TweenPanelOut();
+        }
     }
 
     /// <summary>
@@ -196,6 +167,7 @@ public class CurieCatalogDemo : MonoBehaviour
 
         // Get thumbnail image
         var productData = productDataCall.GetResult();
+        Debug.Log("n:" + productData.name);
         var modelThumbnail = productData.thumbnail_url;
 
         // Get detailed info
@@ -205,18 +177,12 @@ public class CurieCatalogDemo : MonoBehaviour
             Debug.LogError("No available thumbnail image for this model: " + model);
         }
 
-        foreach(var u in _UIViews)
-        {
-            yield return SetImage(u._modelButtons[i].Image, modelThumbnail);
-        }
+        yield return SetImage(_curUI._modelButtons[i].Image, modelThumbnail);
 
-        _UIViews.ForEach(u =>
-        {
-            u._modelButtons[i].ProductName.text = productData.name;
-            u._modelButtons[i].ProductBrand.text = productData.brand;
-            u._modelButtons[i].Button.onClick.RemoveAllListeners();
-            u._modelButtons[i].Button.onClick.AddListener(() => OnButtonClick(model));
-        });
+        _curUI._modelButtons[i].ProductName.text = productData.name;
+        _curUI._modelButtons[i].ProductBrand.text = productData.brand;
+        _curUI._modelButtons[i].Button.onClick.RemoveAllListeners();
+        _curUI._modelButtons[i].Button.onClick.AddListener(() => OnButtonClick(model));
 
         if(i == 2 && showFirst)
         {
@@ -259,19 +225,16 @@ public class CurieCatalogDemo : MonoBehaviour
         _curUI.ProductDesc.text = "";
         _curUI.PolyCount.text = "";
         _curUI.VertCount.text = "";
-        _UIViews.ForEach(u =>
+
+        var panelVisible = _curUI._catalogPanel.activeInHierarchy;
+        if (panelVisible)
         {
-            var panelVisible = u._catalogPanel.activeInHierarchy;
-            if (panelVisible)
-            {
-                u.TweenPanelOut();
-            }
-        });
-        _UIViews.ForEach(u =>
-        {
-            u._polyCountHolder.SetActive(false);
-            u._loadingPanel.SetActive(true);
-        });
+            _curUI.TweenPanelOut();
+        }
+
+        _curUI._polyCountHolder.SetActive(false);
+        _curUI._loadingPanel.SetActive(true);
+
         if (_curSpawnedObj)
         {
             Destroy(_curSpawnedObj);
@@ -284,11 +247,10 @@ public class CurieCatalogDemo : MonoBehaviour
         var productDataCall = _api.GetProductData(modelId);
         yield return productDataCall.Coroutine;
         var productData = productDataCall.GetResult();
-        _UIViews.ForEach(u =>
-        {
-            u._polyCountHolder.SetActive(true);
-            u._loadingPanel.SetActive(false);
-        });
+
+        _curUI._polyCountHolder.SetActive(true);
+        _curUI._loadingPanel.SetActive(false);
+
         var modelObject = instantiateCall.GetResult();
         modelObject.transform.parent = ModelHolder;
         modelObject.transform.localPosition = Vector3.zero;
@@ -296,44 +258,26 @@ public class CurieCatalogDemo : MonoBehaviour
 
         _curSpawnedObj = modelObject;
         Debug.Log("[Curie] Instantiated: " + modelObject.name);
-        _UIViews.ForEach(_u =>
-        {
-            var modelInfo = modelObject.GetComponent<CurieModelTracker>();
 
-            _u.ProductName.text = productData.name;
-            _u.ProductDesc.text = productData.description;
+        var modelInfo = modelObject.GetComponent<CurieModelTracker>();
 
-            _u.ProductNameDev.text = "<b>Model Name:</b> " + productData.name;
-            _u.ProductDescDev.text = "<b>Model Description:</b> " + productData.description;
-
-            _u.PolyCount.text = "<b>Poly Count:</b> " + CurieModelFix.CalcPolyCount(modelObject.transform, 0).ToString();
-            _u.VertCount.text = "<b>Vert Count:</b> " + CurieModelFix.CalcVerticies(modelObject.transform, 0).ToString();
-            _u.FileSize.text = "<b>File Size (Mb):</b> " + (((float)modelInfo.FileSize / 1024 / 1024)).ToString("F2");
-        });
-
-
-
-        //_mouseOrbiter.target.transform.position = modelObject.transform.position;
-        //var p = _mouseOrbiter.target.transform.position;
-        //p.y = CurieModelFix.CalcMidPoint(modelObject.transform);
-        //_mouseOrbiter.target.transform.position = p ;
-
-
-        //_mouseOrbiter.target.parent = modelObject.transform;
-        //Debug.Log("SIZE:: " + CurieModelFix.CalcSize(modelObject.transform, Vector3.zero));
+        _curUI.ProductName.text = productData.name;
+        _curUI.ProductDesc.text = productData.description;
+        
+        _curUI.ProductNameDev.text = "<b>Model Name:</b> " + productData.name;
+        _curUI.ProductDescDev.text = "<b>Model Description:</b> " + productData.description;
+        
+        _curUI.PolyCount.text = "<b>Poly Count:</b> " + CurieModelTools.CalcPolyCount(modelObject.transform, 0).ToString();
+        _curUI.VertCount.text = "<b>Vert Count:</b> " + CurieModelTools.CalcVerticies(modelObject.transform, 0).ToString();
+        _curUI.FileSize.text = "<b>File Size (Mb):</b> " + (((float)modelInfo.FileSize / 1024 / 1024)).ToString("F2");
 
         _scene.SetActive(true);
-        _UIViews.ForEach(u =>
-        {
-            u._catalogButton.gameObject.SetActive(true);
-            u._backButtonBg.gameObject.SetActive(false);
-        });
 
-        _UIViews.ForEach(u =>
-        {
-            if(!u.InitialisedTweens)
-                u.SetupTweens();
-        });
+        _curUI._catalogButton.gameObject.SetActive(true);
+        _curUI._backButtonBg.gameObject.SetActive(false);
+
+        if(!_curUI.InitialisedTweens)
+            _curUI.SetupTweens();
 
         Loading = false;
     }

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CurieSDK
 {
-    public static class CurieModelFix
+    public static class CurieModelTools
     {
         /// <summary>
         /// Reposition a model to 0,0,0 and align correctly with ground.
