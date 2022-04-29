@@ -72,6 +72,12 @@ public class CurieCatalogDemo : MonoBehaviour
         _catalogHolder.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         _catalogHolder.constraintCount = Math.Max(2, (int)Math.Floor(Screen.width / _modelWidth));
 
+
+
+#if UNITY_ANDROID || UNITY_IPHONE
+        _catalogHolder.constraintCount = 2;
+#endif
+
         var x = Screen.width;
         var y = Screen.height;
         var aspectRatio = AspectRatio(x, y);
