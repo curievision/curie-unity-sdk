@@ -87,16 +87,17 @@ namespace CurieCatalogExample
         public bool MoveTweenActive;
         public bool MoveTweenActiveMobile;
 
-
-        private void Start()
+        private void Awake()
         {
             API = null;
 
             // Entry point for using Curie API
             // In this script, it is only used to check for the last output Dev request / response
             Curie.OnInitialized += OnCurieInit;
+        }
 
-
+        private void Start()
+        {
             // Initialise tweens and UI
             DOTween.defaultAutoPlay = AutoPlay.None;
 
